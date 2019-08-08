@@ -15,7 +15,7 @@ En el directorio raíz del código fuente, ejecutar el archivo **install.sh**.
 ```
 ./install.sh
 ```
-This will install the application automatically using the package manager [pip](https://pip.pypa.io/en/stable/).
+This will install the application automatically using [pip](https://pip.pypa.io/en/stable/).
 
 ## Usage
 ```
