@@ -25,8 +25,8 @@ acregnet register <target> <source> --dest=<destination-directory>>
 #### Description:
 - *ac-regnet*: name of the program.
 - *register*: command to register the input images.
-- *target&gt;*: path to the target image.
-- *lt;source&gt;*: path to the source image. 
+- *&lt;target&gt;*: path to the target image.
+- *&lt;source&gt;*: path to the source image. 
 - *&lt;destination-directory&gt;*: path to the directory where the resulting image and the deformation field information will be stored.
 
 Input images must be square PNG images of the same size.
