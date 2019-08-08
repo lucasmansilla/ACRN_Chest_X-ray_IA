@@ -1,0 +1,2 @@
+include acregnet/model/*
+include README.md

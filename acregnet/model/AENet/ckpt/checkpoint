@@ -1,0 +1,2 @@
+model_checkpoint_path: "/media/Archivos/lmansilla/registracion-cnn/core/model/JSRT/TrainingForTest/AENet/ckpt/model.ckpt"
+all_model_checkpoint_paths: "/media/Archivos/lmansilla/registracion-cnn/core/model/JSRT/TrainingForTest/AENet/ckpt/model.ckpt"
