@@ -23,7 +23,7 @@ acregnet register <target> <source> --dest=<destination-directory>>
 ```
 
 #### Description:
-- *ac-regnet*: name of the program.
+- *acregnet*: name of the program.
 - *register*: command to register the input images.
 - *&lt;target&gt;*: path to the target image.
 - *&lt;source&gt;*: path to the source image. 
