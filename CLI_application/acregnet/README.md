@@ -1,7 +1,7 @@
 # AC-RegNet CLI Application
 An open source command line tool for chest X-ray image registration using a pre-trained AC-RegNet model.
 
-#### Requirements
+## Requirements
 To run the application you need the **Python 2.7** interpreter and the following modules: 
 - [TensorFlow](https://www.tensorflow.org/) (tensorflow&gt;=1.5.0)
 - [NumPy](http://www.numpy.org/) (numpy&gt;=1.14.5)
