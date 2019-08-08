@@ -11,7 +11,7 @@ To run the application you need the **Python 2.7** interpreter and the following
 These modules are not part of the standard Python library, but are included in the program dependencies list and will be automatically installed through [pip](https://pip.pypa.io/en/stable/) when the program is installed.
 
 ## Install
-En el directorio raíz del código fuente, ejecutar el archivo **install.sh**. 
+In the root directory of the source code, run the file **install.sh**:
 ```
 ./install.sh
 ```
