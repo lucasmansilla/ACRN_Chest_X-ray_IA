@@ -1,8 +1,8 @@
 from data import DataHandler
 from models import ACRegNet
-import numpy as np
 import tensorflow as tf
 from utils import get_random_batch, read_config_file, create_dir
+
 
 def test_acregnet_model(config):
     tf.reset_default_graph()
@@ -20,10 +20,10 @@ def test_acregnet_model(config):
     print('Loading trained AC-RegNet model...done')
 
     batch_ims_x, batch_ims_y = get_random_batch(test_ims, config['batch_size'])
-    
+
     print('Testing...')
     acregnet.deploy(config['result_dir'], batch_ims_x, batch_ims_y, True)
-    
+
     print('Testing...done')
 
 

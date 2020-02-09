@@ -8,6 +8,7 @@ def batch_warp2d(imgs, mappings):
     warp image using mapping function
     I(x) -> I(phi(x))
     phi: mapping function
+
     Parameters
     ----------
     imgs : tf.Tensor
@@ -16,6 +17,7 @@ def batch_warp2d(imgs, mappings):
     mapping : tf.Tensor
         grids representing mapping function
         [n_batch, xlen, ylen, 2]
+
     Returns
     -------
     output : tf.Tensor
@@ -30,9 +32,7 @@ def batch_warp2d(imgs, mappings):
     y_coords_flat = tf.reshape(y_coords, [-1])
 
     output = _interpolate2d(imgs, x_coords_flat, y_coords_flat)
-    
-    #print output.shape.as_list()
-    
+
     return output
 
 

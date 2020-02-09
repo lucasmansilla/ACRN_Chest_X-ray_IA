@@ -2,11 +2,11 @@
 An open source command line tool for chest X-ray image registration using a pre-trained AC-RegNet model.
 
 ## Requirements
-To run the application you need the **Python 2.7** interpreter and the following modules: 
-- [TensorFlow](https://www.tensorflow.org/) (tensorflow&gt;=1.5.0)
-- [NumPy](http://www.numpy.org/) (numpy&gt;=1.14.5)
-- [OpenCV](https://opencv.org/) (opencv-python&gt;=3.4.1.15)
-- [MedPy](https://loli.github.io/medpy/) (medpy==0.3.0)
+To run the application you need the **Python 3.6.9** interpreter and the following modules: 
+- [TensorFlow](https://www.tensorflow.org/) (1.5.0)
+- [NumPy](http://www.numpy.org/) (1.14.5)
+- [OpenCV](https://opencv.org/) (3.4.1.15)
+- [MedPy](https://loli.github.io/medpy/) (0.4.0)
 
 These modules are not part of the standard Python library, but are included in the program dependencies list and will be automatically installed through [pip](https://pip.pypa.io/en/stable/) when the program is installed.
 
@@ -48,7 +48,7 @@ pip uninstall acregnet
 ```
 
 ## Program version
-0.1.0
+1.1
 
 ## Author
 Lucas Andrés Mansilla (lucasmansilla12@gmail.com)

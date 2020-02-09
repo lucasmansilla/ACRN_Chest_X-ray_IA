@@ -1,10 +1,9 @@
 from data import DataHandler
 from models import AENet
-import numpy as np
 import tensorflow as tf
-from utils import get_random_batch, read_config_file, create_dir
+from utils import read_config_file, create_dir
 
- 
+
 def test_aenet_model(config):
     tf.reset_default_graph()
     sess = tf.Session()
@@ -21,7 +20,7 @@ def test_aenet_model(config):
 
     print('Testing...')
     aenet.deploy(config['result_dir'], test_lbs)
-    
+
     print('Testing...done')
 
 
