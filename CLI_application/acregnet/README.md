@@ -19,7 +19,7 @@ This will install the application automatically using [pip](https://pip.pypa.io/
 
 ## Usage
 ```
-acregnet register <target> <source> --dest=<destination-directory>>
+acregnet register <target> <source> --dest=<destination-directory>
 ```
 
 #### Description:
