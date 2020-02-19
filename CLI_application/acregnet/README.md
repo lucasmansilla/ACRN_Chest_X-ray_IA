@@ -39,7 +39,7 @@ Loading input images...done
 Building AC-RegNet model...done
 Loading trained AC-RegNet model...done
 Registering images...
-Result image and deformation field information saved in: /home/user/my_dir
+Result image and deformation field saved in: /home/user/my_dir
 ```
 
 ## Uninstall
