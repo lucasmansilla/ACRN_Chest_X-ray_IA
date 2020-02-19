@@ -1,7 +1,7 @@
 import tensorflow as tf
-from displacement import batch_displacement_warp2d
-from ops import conv2d, upconv2d
-from utils import save_image
+from .displacement import batch_displacement_warp2d
+from .ops import conv2d, upconv2d
+from .utils import save_image
 import medpy.io.save
 import os
 import numpy as np

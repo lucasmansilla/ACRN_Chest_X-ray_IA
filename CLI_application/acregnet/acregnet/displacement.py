@@ -1,8 +1,8 @@
 # This code is based on https://github.com/Ryo-Ito/spatial_transformer_network
 
 import tensorflow as tf
-from grid import batch_mgrid
-from warp import batch_warp2d
+from .grid import batch_mgrid
+from .warp import batch_warp2d
 
 
 def batch_displacement_warp2d(imgs, vector_fields,

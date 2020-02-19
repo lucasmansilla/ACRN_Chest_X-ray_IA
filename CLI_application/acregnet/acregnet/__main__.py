@@ -48,7 +48,7 @@ def main():
     else:
         show_msg()
 
-    from register import register
+    from .register import register
 
     try:
         register(fix_im_fname, mov_im_fname, dest_dir)

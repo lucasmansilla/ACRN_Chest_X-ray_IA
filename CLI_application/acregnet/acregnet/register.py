@@ -2,7 +2,7 @@ def register(fix_im_fname, mov_im_fname, dest_dir):
     import os
     import cv2
     import numpy as np
-    from models import ACRegNet
+    from .models import ACRegNet
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
     import tensorflow as tf
 
