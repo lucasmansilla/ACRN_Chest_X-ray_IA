@@ -19,8 +19,8 @@ def batch_displacement_warp2d(imgs, vector_fields,
         [n_batch, xlen, ylen, 2]
     vector_fields_in_pixel_space: boolean
         If vector_fields_in_pixel_space, it means that the displacements
-        in the vector field are expressed in absolute pixels.
-        Therefore, they will be rescaled from [0, xlen][0, ylen]
+        in the vector field are expressed in pixels.
+        Therefore, they will be rescaled from imagen domain
         to [-1.,1.][-1.,1.] to make it compatible with the convention used
         by the warper.
 
@@ -40,7 +40,7 @@ def batch_displacement_warp2d(imgs, vector_fields,
     grids = batch_mgrid(n_batch, xlen, ylen)
 
     if vector_fields_in_pixel_space:
-        # Scale the vector field from [0, xlen][0, ylen] to [-1.,1.][-1.,1.]
+        # Scale the vector field from image domain to [-1.,1.][-1.,1.]
         vector_fields_transposed_rescaled = tf.stack([
             (2. * vector_fields_transposed[:, 0, :, :]) /
             (tf.to_float(xlen) - 1.),
