@@ -1,20 +1,17 @@
 VERSION = '1.1'
 
 
-def show_msg(msg=None):
-    import sys
-
-    if msg is not None:
-        print(msg)
-    else:
-        print('usage: acregnet register <target> <source> ' +
-              '--dest=<destination-directory>')
-    sys.exit()
-
-
 def main():
-    import os
     import sys
+    import os
+
+    def show_msg(msg=None):
+        if msg is not None:
+            print(msg)
+        else:
+            print('usage: acregnet register <target> <source> ' +
+                  '--dest=<destination-directory>')
+        sys.exit()
 
     args = sys.argv[1:]
 
@@ -28,23 +25,23 @@ def main():
         if len(args[1:]) != 3:
             show_msg()
 
-        import imghdr
+        if not args[1].endswith('.png') or not os.path.exists(args[1]):
+            show_msg('Target image: unknown data file. Expected: PNG image.')
+        if not args[2].endswith('.png') or not os.path.exists(args[2]):
+            show_msg('Source image: unknown data file. Expected: PNG image.')
 
-        if not os.path.exists(args[1]) or imghdr.what(args[1]) != 'png':
-            show_msg('Target image must be a valid image contained in a ' +
-                     'PNG file. For example: /home/user/my_dir/image001.png.')
-        if not os.path.exists(args[2]) or imghdr.what(args[2]) != 'png':
-            show_msg('Source image must be a valid image contained in a ' +
-                     'PNG file. For example: /home/user/my_dir/image001.png.')
         if not args[3].startswith('--dest=/'):
-            show_msg('An existing destination directory must be specified. ' +
-                     'For example: --dest=/home/user/my_dir')
+            show_msg('Please provide a destination directory.')
         if not os.path.exists(args[3][7:]):
             show_msg('Destination directory does not exist.')
 
         fix_im_fname = args[1]
         mov_im_fname = args[2]
+
         dest_dir = args[3][7:]
+        if dest_dir[-1] == '/':
+            dest_dir = dest_dir[:-1]
+
     else:
         show_msg()
 

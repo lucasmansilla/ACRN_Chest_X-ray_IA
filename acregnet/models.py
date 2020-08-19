@@ -1,13 +1,11 @@
 import tensorflow as tf
-from displacement import batch_displacement_warp2d
-from ops import conv2d, dense, upconv2d, l2_loss, ncc, \
-    softmax_cross_entropy, total_variation
-from utils import get_one_hot_encoding_from_hard_segm, \
-    swap_neighbor_labels_with_prob, save_image, \
-    get_hard_segm_from_prob_map
-import medpy.io.save
-import os
 import numpy as np
+import medpy.io.save
+
+from displacement import batch_displacement_warp2d
+from ops import conv2d, dense, upconv2d
+from losses import l2, ncc, ce, tv
+from utils import to_one_hot, to_hard_seg, add_swap_noise, save_image
 
 
 class CNN_AE(object):
@@ -68,6 +66,7 @@ class CNN_AE(object):
 
 
 class AENet(object):
+    """Implementation of the Autoencoder."""
 
     def __init__(self, sess, config, name, is_train):
         self.sess = sess
@@ -77,64 +76,58 @@ class AENet(object):
         input_shape = [config['batch_size']] + \
             config['image_size'] + [config['n_labels'] + 1]
 
+        # Inputs
         self.x = tf.placeholder(tf.float32, input_shape)
         self.y = tf.placeholder(tf.float32, input_shape)
 
         self.CNN_AE = CNN_AE('CNN_AE', is_train=self.is_train)
 
+        # Codes and outputs
         fc1, conv_out = self.CNN_AE(self.x, input_shape[-1], config['n_codes'])
         self.h = fc1
         self.z = conv_out
 
         if self.is_train:
-            self.loss = softmax_cross_entropy(labels=self.y, logits=self.z)
+            # Loss function and optimizer
+            self.loss = ce(self.y, self.z)
             self.optim = tf.train.AdamOptimizer(config['learning_rate'])
+
             self.train = self.optim.minimize(
                 self.loss, var_list=self.CNN_AE.var_list)
 
         self.sess.run(tf.global_variables_initializer())
 
-    def fit(self, train_set):
-        _, loss = self.sess.run(
-            [self.train, self.loss],
-            {
-                self.x: get_one_hot_encoding_from_hard_segm(
-                    swap_neighbor_labels_with_prob(train_set)),
-                self.y: get_one_hot_encoding_from_hard_segm(train_set)})
+    def fit(self, train_lbs):
+        _, loss = self.sess.run([self.train, self.loss], {
+                self.x: to_one_hot(add_swap_noise(train_lbs)),
+                self.y: to_one_hot(train_lbs)})
         return loss
 
-    def deploy(self, dir_path, test_set):
-        z = get_hard_segm_from_prob_map(
-            self.sess.run(
-                self.z,
-                {self.x: get_one_hot_encoding_from_hard_segm(test_set)}))
+    def deploy(self, dir_path, test_lbs):
+        z = to_hard_seg(self.sess.run(self.z, {
+            self.x: to_one_hot(test_lbs)}))
+
         if dir_path is not None:
+            temp_path = dir_path + '/{:02d}_{}.png'
             for i in range(z.shape[0]):
-                save_image(
-                    os.path.join(
-                        dir_path, '{:02d}_x.png'.format(i + 1)),
-                    test_set[i, :, :, 0], is_integer=True)
-                save_image(
-                    os.path.join(
-                        dir_path, '{:02d}_y.png'.format(i + 1)),
-                    z[i, :, :, 0], is_integer=True)
+                save_image(temp_path.format(i + 1, 'x'),
+                           test_lbs[i, :, :, 0], is_integer=True)
+                save_image(temp_path.format(i + 1, 'y'),
+                           z[i, :, :, 0], is_integer=True)
         return z
 
-    def get_codes(self, test_set):
-        return self.sess.run(
-            self.h,
-            {self.x: get_one_hot_encoding_from_hard_segm(test_set)})
+    def get_codes(self, test_lbs):
+        return self.sess.run(self.h, {
+            self.x: to_one_hot(test_lbs)})
 
     def save(self, ckpt_path, step=None):
-        self.CNN_AE.save(
-            self.sess, os.path.join(ckpt_path, 'model.ckpt'), step)
+        self.CNN_AE.save(self.sess, ckpt_path + '/model.ckpt', step)
 
     def restore(self, ckpt_path, step=None):
         ckpt_file = 'model.ckpt'
         if step is not None:
             ckpt_file = ckpt_file + '-' + str(step)
-        self.CNN_AE.restore(
-            self.sess, os.path.join(ckpt_path, ckpt_file))
+        self.CNN_AE.restore(self.sess, ckpt_path + '/' + ckpt_file)
 
 
 class VectorCNN(object):
@@ -227,6 +220,7 @@ class VectorCNN(object):
 
 
 class ACRegNet(object):
+    """Implementation of AC-RegNet."""
 
     def __init__(self, sess, config, name, is_train):
         self.sess = sess
@@ -235,6 +229,7 @@ class ACRegNet(object):
 
         im_shape = [config['batch_size']] + config['image_size'] + [1]
 
+        # Source/Target images
         self.x = tf.placeholder(tf.float32, im_shape)
         self.y = tf.placeholder(tf.float32, im_shape)
         self.xy = tf.concat([self.x, self.y], axis=3)
@@ -243,10 +238,12 @@ class ACRegNet(object):
             lb_shape = [config['batch_size']] + \
                 config['image_size'] + [config['n_labels'] + 1]
 
+            # Source/Target masks
             self.xlabel = tf.placeholder(tf.float32, lb_shape)
             self.ylabel = tf.placeholder(tf.float32, lb_shape)
         else:
             if im_shape[1:-1] != [64, 64]:
+                # Downsampling to 64x64 (for test)
                 dsfac = im_shape[1] / 64.
                 x_reshaped = tf.image.resize_images(self.x, size=[64, 64])
                 y_reshaped = tf.image.resize_images(self.y, size=[64, 64])
@@ -254,9 +251,12 @@ class ACRegNet(object):
                 self.xy = tf.concat([x_reshaped, y_reshaped], axis=3)
 
         self.VectorCNN = VectorCNN('VectorCNN', is_train=self.is_train)
+
+        # Deformation field
         self.v = self.VectorCNN(self.xy)
 
         if self.is_train:
+            # Warp source images/masks
             self.z = batch_displacement_warp2d(
                 self.x, self.v, vector_fields_in_pixel_space=True)
             self.zlabel = batch_displacement_warp2d(
@@ -264,6 +264,7 @@ class ACRegNet(object):
 
             self.CNN_AE = CNN_AE('CNN_AE', is_train=False)
 
+            # Autoencoder instances
             with tf.name_scope('AE_1'):
                 h1, _ = self.CNN_AE(
                     self.ylabel, lb_shape[-1], config['n_codes'])
@@ -271,93 +272,70 @@ class ACRegNet(object):
                 h2, _ = self.CNN_AE(
                     self.zlabel, lb_shape[-1], config['n_codes'])
 
+            # Loss function and optimizer
             self.loss = -ncc(self.y, self.z) + \
-                config['tv_reg'] * total_variation(self.v) + \
-                config['ce_reg'] * softmax_cross_entropy(
-                    labels=self.ylabel, logits=self.zlabel) + \
-                config['ae_reg'] * l2_loss(h1, h2)
+                config['tv_reg'] * tv(self.v) + \
+                config['ce_reg'] * ce(self.ylabel, self.zlabel) + \
+                config['ae_reg'] * l2(h1, h2)
             self.optim = tf.train.AdamOptimizer(config['learning_rate'])
+
             self.train = self.optim.minimize(
                 self.loss, var_list=self.VectorCNN.var_list)
 
             self.sess.run(tf.global_variables_initializer())
-            self.CNN_AE.restore(
-                self.sess, os.path.join(config['aenet_dir'], 'model.ckpt'))
+
+            # Load parameters of the pre-trained Autoencoder
+            self.CNN_AE.restore(self.sess, config['aenet_dir'] + '/model.ckpt')
         else:
             if list(im_shape[1:-1]) != [64, 64]:
+                # Upsampling to input size (for test)
                 self.v = tf.image.resize_images(self.v, size=im_shape[1:-1])
                 self.v = self.v * dsfac
 
+            # Warp source images
             self.z = batch_displacement_warp2d(
                 self.x, self.v, vector_fields_in_pixel_space=True)
 
             self.sess.run(tf.global_variables_initializer())
 
-    def fit(self, batch_images_x, batch_images_y,
-            batch_labels_x, batch_labels_y):
-        _, loss = self.sess.run(
-            [self.train, self.loss],
-            {
-                self.x: batch_images_x,
-                self.y: batch_images_y,
-                self.xlabel: get_one_hot_encoding_from_hard_segm(
-                    batch_labels_x),
-                self.ylabel: get_one_hot_encoding_from_hard_segm(
-                    batch_labels_y)})
+    def fit(self, mov_ims, fix_ims, mov_lbs, fix_lbs):
+        _, loss = self.sess.run([self.train, self.loss], {
+            self.x: mov_ims, self.y: fix_ims,
+            self.xlabel: to_one_hot(mov_lbs),
+            self.ylabel: to_one_hot(fix_lbs)})
         return loss
 
-    def deploy(self, dir_path, x, y, save_def_field_info=False):
-        z, df = self.sess.run(
-            [self.z, self.v],
-            {
-                self.x: x,
-                self.y: y})
+    def deploy(self, dir_path, mov_ims, fix_ims, save_df_info=False):
+        warp_ims, df = self.sess.run([self.z, self.v], {
+            self.x: mov_ims, self.y: fix_ims})
 
         if dir_path is not None:
-            for i in range(z.shape[0]):
-                save_image(
-                    os.path.join(
-                        dir_path, '{:02d}_x.png'.format(i + 1)),
-                    x[i, :, :, 0])
-                save_image(
-                    os.path.join(
-                        dir_path, '{:02d}_y.png'.format(i + 1)),
-                    y[i, :, :, 0])
-                save_image(
-                    os.path.join(
-                        dir_path, '{:02d}_z.png'.format(i + 1)),
-                    z[i, :, :, 0])
-                if save_def_field_info:
-                    medpy.io.save(
-                        np.squeeze(np.transpose(df[i, :, :, 0])),
-                        os.path.join(
-                            dir_path, '{:02d}_defx_U.nii.gz'.format(i + 1)),
-                        hdr=False, force=True)
-                    medpy.io.save(
-                        np.squeeze(np.transpose(df[i, :, :, 1])),
-                        os.path.join(
-                            dir_path, '{:02d}_defx_V.nii.gz'.format(i + 1)),
-                        hdr=False, force=True)
-                    grad_magn = np.sqrt(np.multiply(df[i, :, :, 0],
-                                                    df[i, :, :, 0]) +
-                                        np.multiply(df[i, :, :, 1],
-                                                    df[i, :, :, 1]))
-                    grad_magn = np.transpose(grad_magn)
-                    medpy.io.save(
-                        np.squeeze(grad_magn),
-                        os.path.join(
-                            dir_path, '{:02d}_defx_grad.nii.gz'.format(i + 1)),
-                        hdr=False, force=True)
+            temp_path = dir_path + '/{:02d}_{}.png'
+            for i in range(warp_ims.shape[0]):
+                save_image(temp_path.format(i + 1, 'x'), mov_ims[i, :, :, 0])
+                save_image(temp_path.format(i + 1, 'y'), fix_ims[i, :, :, 0])
+                save_image(temp_path.format(i + 1, 'z'), warp_ims[i, :, :, 0])
 
-        return z, df
+            if save_df_info:
+                temp_path = dir_path + '/{:02d}_defx_{}.nii.gz'
+                for i in range(df.shape[0]):
+                    medpy.io.save(np.squeeze(np.transpose(df[i, :, :, 0])),
+                                  temp_path.format(i + 1, 'U'))
+                    medpy.io.save(np.squeeze(np.transpose(df[i, :, :, 1])),
+                                  temp_path.format(i + 1, 'V'))
+                    grad_magn = np.sqrt(df[i, :, :, 0] ** 2 +
+                                        df[i, :, :, 1] ** 2)
+                    grad_magn = np.transpose(grad_magn)
+                    medpy.io.save(np.squeeze(grad_magn),
+                                  temp_path.format(i + 1, 'grad'))
+
+        return warp_ims, df
 
     def save(self, ckpt_path, step=None):
-        self.VectorCNN.save(
-            self.sess, os.path.join(ckpt_path, 'model.ckpt'), step)
+        self.VectorCNN.save(self.sess, ckpt_path + '/model.ckpt', step)
 
     def restore(self, ckpt_path, step=None):
         ckpt_file = 'model.ckpt'
         if step is not None:
             ckpt_file = ckpt_file + '-' + str(step)
-        self.VectorCNN.restore(
-            self.sess, os.path.join(ckpt_path, ckpt_file))
+        self.VectorCNN.restore(self.sess, ckpt_path + '/' + ckpt_file)

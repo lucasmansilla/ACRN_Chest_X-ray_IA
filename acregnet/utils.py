@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import cv2
-from medpy.metric.binary import dc, hd, assd
 
 
 def read_config_file(filename):
@@ -24,28 +23,51 @@ def create_dir(dir_path):
         os.makedirs(dir_path)
 
 
-def get_random_batch(x, n_samples, y=None):
-    choice_1 = np.random.choice(x.shape[0], n_samples)
-    choice_2 = np.random.choice(x.shape[0], n_samples)
+def random_pairs(*arrays, size):
+    """Generate random moving and fixed batches for each input array.
 
-    x_1 = x[choice_1]
-    y_1 = x[choice_2]
+    Args:
+        *arrays: sequence of arrays (e.g. images, labels).
+        size: number of samples in batches.
 
-    if y is not None:
-        x_2 = y[choice_1]
-        y_2 = y[choice_2]
-        return x_1, y_1, x_2, y_2
+    Returns:
+        batches: tuple containing moving and fixed batches of inputs.
+    """
+    if len(arrays) == 0:
+        raise ValueError('At least one array required as input.')
 
-    return x_1, y_1
+    n_examples = len(arrays[0])
+
+    idx_list = {
+        'mov': np.random.choice(n_examples, size),
+        'fix': np.random.choice(n_examples, size)}
+
+    batches = []
+    for array in arrays:
+        batches.append(array[idx_list['mov']])
+        batches.append(array[idx_list['fix']])
+
+    return tuple(batches)
 
 
-def swap_neighbor_labels_with_prob(batch_hard_segm, swap_prob=0.1):
-    """Returns noised versions of hard segmentations, swapping the label
-    of each pixel with the label of its left neighbor with a probability
-    of swap_prob."""
-    batch_size, height, width = batch_hard_segm.shape[:-1]
-    corrupted = np.copy(batch_hard_segm)
+def add_swap_noise(hard_seg, swap_prob=0.1):
+    """Generate noisy hard segmentation arrays by swapping neighboring
+    pixels according to a given probability.
 
+    Args:
+        hard_seg: 4-D numpy array of shape [batch, height, width, 1].
+        swap_prob: probability of swapping neighbouring pixels.
+
+    Returns:
+        noise: 4-D numpy array of shape [batch, height, width, 1]
+            containing the one-hot segmentations.
+    """
+    if len(hard_seg.shape) != 4:
+        raise ValueError('Input array has to be 4-D.')
+
+    batch_size, height, width = hard_seg.shape[:-1]
+
+    noise = np.copy(hard_seg)
     for i in range(batch_size):
         swap_map = np.random.choice(
             range(2), size=(height, width // 2), p=[1 - swap_prob, swap_prob])
@@ -53,120 +75,58 @@ def swap_neighbor_labels_with_prob(batch_hard_segm, swap_prob=0.1):
         h_idx, w_idx = np.where(swap_map == 1)
         w_idx = 2 * w_idx + 1
 
-        x_r_vals = corrupted[i, h_idx, w_idx, 0]
-        x_l_vals = corrupted[i, h_idx, w_idx - 1, 0]
+        x_r_vals = noise[i, h_idx, w_idx, 0]
+        x_l_vals = noise[i, h_idx, w_idx - 1, 0]
 
-        corrupted[i, h_idx, w_idx, 0] = x_l_vals
-        corrupted[i, h_idx, w_idx - 1, 0] = x_r_vals
+        noise[i, h_idx, w_idx, 0] = x_l_vals
+        noise[i, h_idx, w_idx - 1, 0] = x_r_vals
 
-    return corrupted
+    return noise
 
 
-def get_one_hot_encoding_from_hard_segm(batch_hard_segm, labels=None):
-    """Encodes hard segmentations as a one-hot array."""
+def to_one_hot(hard_seg, labels=None):
+    """Convert hard segmentation arrays to one-hot.
+
+    Args:
+        hard_seg: 4-D numpy array of shape [batch, height, width, 1].
+        labels: list of class labels (anatomical structures).
+
+    Returns:
+        one_hot: 4-D numpy array of shape [batch, height, width, channels]
+            containing the one-hot segmentations.
+    """
+    if len(hard_seg.shape) != 4:
+        raise ValueError('Input array has to be 4-D.')
+
     if labels is None:
-        labels = np.unique(batch_hard_segm)
+        labels = np.unique(hard_seg)
 
-    dims = batch_hard_segm.shape
-    one_hot = np.zeros(
-        shape=(dims[0], dims[1], dims[2], len(labels)), dtype=np.int32)
+    one_hot = []
+    for seg in hard_seg:
+        one_hot.append(np.stack([seg[..., 0] == i for i in labels], axis=-1))
 
-    for i, hard_segm in enumerate(batch_hard_segm):
-        for j, label_value in enumerate(labels):
-            one_hot[i, :, :, j] = (
-                hard_segm[:, :, 0] == label_value).astype(np.int32)
-
-    return one_hot
+    return 1. * np.array(one_hot)
 
 
-def get_hard_segm_from_prob_map(batch_prob_map, labels=None):
-    """Converts probability maps to hard segmentations."""
-    dims = batch_prob_map.shape
-    hard_segm = np.argmax(batch_prob_map, axis=len(dims) - 1)
-    hard_segm = np.argmax(batch_prob_map, axis=len(dims) - 1)
+def to_hard_seg(prob_map, labels=None):
+    """Convert probability map arrays to hard segmentations.
+
+    Args:
+        prob_map: 4-D numpy array of shape [batch, height, width, channels].
+        labels: list of class labels (anatomical structures).
+
+    Returns:
+        hard_seg: 4-D numpy array of shape [batch, height, width, 1]
+            containing the hard segmentations.
+    """
+    if len(prob_map.shape) != 4:
+        raise ValueError('Input array has to be 4-D.')
+
+    hard_seg = np.argmax(prob_map, axis=-1)
 
     if labels is not None:
-        final_hard_segm = np.copy(hard_segm)
-        for l in range(len(labels)):
-            final_hard_segm[hard_segm == l] = labels[l]
-        return final_hard_segm.reshape(list(hard_segm.shape) + [1])
-    else:
-        return hard_segm.reshape(list(hard_segm.shape) + [1])
+        # Relabel segmentations
+        cur_labels = np.unique(hard_seg)
+        hard_seg = np.select([hard_seg == i for i in cur_labels], labels)
 
-
-def get_dice_metric(batch_result, batch_reference,
-                    by_label=True):
-    """Computes the Dice-Sorensen Coefficient (DSC) between the masks
-    from two batches."""
-    if batch_result.shape != batch_reference.shape:
-        raise ValueError('The input batches must be the same size')
-
-    batch_result = get_one_hot_encoding_from_hard_segm(
-        np.asarray(
-            batch_result), labels=np.unique(batch_reference)).astype(np.bool)
-    batch_reference = get_one_hot_encoding_from_hard_segm(
-        np.asarray(batch_reference)).astype(np.bool)
-
-    dims = batch_reference.shape
-    dsc_values = np.ndarray(shape=(dims[0], dims[-1] - 1), dtype=np.float32)
-    for i in range(dims[0]):
-        for l in range(1, dims[-1]):
-            dsc_values[i, l - 1] = dc(
-                batch_result[i, :, :, l], batch_reference[i, :, :, l])
-
-    if not by_label:
-        dsc_values = np.mean(dsc_values, axis=1)
-
-    return dsc_values
-
-
-def get_hd_metric(batch_result, batch_reference, pixel_size_mm=1,
-                  by_label=True):
-    """Computes the Hausdorff Distance (HD) between two masks
-    from two batches."""
-    if batch_result.shape != batch_reference.shape:
-        raise ValueError('The input batches must be the same size')
-
-    batch_result = get_one_hot_encoding_from_hard_segm(
-        np.asarray(batch_result),
-        labels=np.unique(batch_reference)).astype(np.bool)
-    batch_reference = get_one_hot_encoding_from_hard_segm(
-        np.asarray(batch_reference)).astype(np.bool)
-
-    dims = batch_result.shape
-    hd_values = np.ndarray(shape=(dims[0], dims[-1] - 1), dtype=np.float32)
-    for i in range(dims[0]):
-        for l in range(1, dims[-1]):
-            hd_values[i, l - 1] = hd(
-                batch_result[i, :, :, l], batch_reference[i, :, :, l])
-
-    if not by_label:
-        hd_values = np.mean(hd_values, axis=1)
-
-    return hd_values * float(pixel_size_mm)
-
-
-def get_assd_metric(batch_result, batch_reference, pixel_size_mm=1,
-                    by_label=True):
-    """Computes the Average Symmetric Surface Distance (ASSD) between
-    two masks from two batches."""
-    if batch_result.shape != batch_reference.shape:
-        raise ValueError('The input batches must be the same size')
-
-    batch_result = get_one_hot_encoding_from_hard_segm(
-        np.asarray(batch_result),
-        labels=np.unique(batch_reference)).astype(np.bool)
-    batch_reference = get_one_hot_encoding_from_hard_segm(
-        np.asarray(batch_reference)).astype(np.bool)
-
-    dims = batch_result.shape
-    assd_values = np.ndarray(shape=(dims[0], dims[-1] - 1), dtype=np.float32)
-    for i in range(dims[0]):
-        for l in range(1, dims[-1]):
-            assd_values[i, l - 1] = assd(
-                batch_result[i, :, :, l], batch_reference[i, :, :, l])
-
-    if not by_label:
-        assd_values = np.mean(assd_values, axis=1)
-
-    return assd_values * float(pixel_size_mm)
+    return hard_seg[..., np.newaxis]

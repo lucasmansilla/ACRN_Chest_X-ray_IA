@@ -1,10 +1,10 @@
 import tensorflow as tf
+import numpy as np
+import medpy.io.save
+
 from .displacement import batch_displacement_warp2d
 from .ops import conv2d, upconv2d
 from .utils import save_image
-import medpy.io.save
-import os
-import numpy as np
 
 
 class VectorCNN(object):
@@ -127,45 +127,33 @@ class ACRegNet(object):
 
         self.sess.run(tf.global_variables_initializer())
 
-    def deploy(self, dir_path, x, y, save_def_field_info=False):
-        z, df = self.sess.run(
-            [self.z, self.v],
-            {
+    def deploy(self, dir_path, x, y, save_df_info=False):
+        warp_im, df = self.sess.run([self.z, self.v], {
                 self.x: x,
                 self.y: y})
 
-        save_image(os.path.join(dir_path, 'result_image.png'), z[0, :, :, 0])
-        if save_def_field_info:
-            medpy.io.save(
-                np.squeeze(np.transpose(df[0, :, :, 0])),
-                os.path.join(
-                    dir_path, 'df_u.nii.gz'),
-                hdr=False, force=True)
-            medpy.io.save(
-                np.squeeze(np.transpose(df[0, :, :, 1])),
-                os.path.join(
-                    dir_path, 'df_v.nii.gz'),
-                hdr=False, force=True)
-            grad_magn = np.sqrt(np.multiply(df[0, :, :, 0],
-                                            df[0, :, :, 0]) +
-                                np.multiply(df[0, :, :, 1],
-                                            df[0, :, :, 1]))
-            grad_magn = np.transpose(grad_magn)
-            medpy.io.save(
-                np.squeeze(grad_magn),
-                os.path.join(
-                    dir_path, 'df_grad.nii.gz'),
-                hdr=False, force=True)
+        if dir_path is not None:
+            save_image(dir_path + '/result_image.png', warp_im[0, :, :, 0])
 
-        return z, df
+            if save_df_info:
+                temp_path = dir_path + '/df_{}.nii.gz'
+                medpy.io.save(np.squeeze(np.transpose(df[0, :, :, 0])),
+                              temp_path.format('u'))
+                medpy.io.save(np.squeeze(np.transpose(df[0, :, :, 1])),
+                              temp_path.format('v'))
+                grad_magn = np.sqrt(df[0, :, :, 0] ** 2 +
+                                    df[0, :, :, 1] ** 2)
+                grad_magn = np.transpose(grad_magn)
+                medpy.io.save(np.squeeze(grad_magn),
+                              temp_path.format('grad'))
+
+        return warp_im, df
 
     def save(self, ckpt_path, step=None):
-        self.VectorCNN.save(
-            self.sess, os.path.join(ckpt_path, 'model.ckpt'), step)
+        self.VectorCNN.save(self.sess, ckpt_path + '/model.ckpt', step)
 
     def restore(self, ckpt_path, step=None):
         ckpt_file = 'model.ckpt'
         if step is not None:
             ckpt_file = ckpt_file + '-' + str(step)
-        self.VectorCNN.restore(
-            self.sess, os.path.join(ckpt_path, ckpt_file))
+        self.VectorCNN.restore(self.sess, ckpt_path + '/' + ckpt_file)
