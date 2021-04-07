@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import medpy.io.save
 
 from .displacement import batch_displacement_warp2d
 from .ops import conv2d, upconv2d
@@ -134,18 +133,8 @@ class ACRegNet(object):
 
         if dir_path is not None:
             save_image(dir_path + '/result_image.png', warp_im[0, :, :, 0])
-
             if save_df_info:
-                temp_path = dir_path + '/df_{}.nii.gz'
-                medpy.io.save(np.squeeze(np.transpose(df[0, :, :, 0])),
-                              temp_path.format('u'))
-                medpy.io.save(np.squeeze(np.transpose(df[0, :, :, 1])),
-                              temp_path.format('v'))
-                grad_magn = np.sqrt(df[0, :, :, 0] ** 2 +
-                                    df[0, :, :, 1] ** 2)
-                grad_magn = np.transpose(grad_magn)
-                medpy.io.save(np.squeeze(grad_magn),
-                              temp_path.format('grad'))
+                np.save(dir_path + '/df.npy', np.squeeze(df))
 
         return warp_im, df
 
