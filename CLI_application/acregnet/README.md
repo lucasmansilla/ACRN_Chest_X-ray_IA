@@ -6,9 +6,8 @@ To run the application, you need to install Python 3 and the following libraries
 - [TensorFlow](https://www.tensorflow.org/) (1.5.0)
 - [NumPy](http://www.numpy.org/) (1.14.5)
 - [OpenCV](https://opencv.org/) (3.4.1.15)
-- [MedPy](https://loli.github.io/medpy/) (0.4.0)
 
-These modules are not included in the standard Python library, but are listed in the program dependencies list and will be automatically installed through [pip](https://pip.pypa.io/en/stable/) when the program is installed.
+These modules are not included in the standard Python library, but they are contained in the list of program dependencies and will be installed automatically through [pip](https://pip.pypa.io/en/stable/) when the program is installed.
 
 ## Install
 In the root directory of the application, run the file **install.sh**:
@@ -23,11 +22,11 @@ acregnet register <target> <source> --dest=<destination-directory>
 ```
 
 #### Description:
-- *acregnet*: name of the program.
-- *register*: command to register the input images.
-- *&lt;target&gt;*: path to the target image.
-- *&lt;source&gt;*: path to the source image. 
-- *&lt;destination-directory&gt;*: path to the directory where the resulting image and deformation field will be stored.
+- *acregnet*: the name of the program.
+- *register*: the command used to register the input images.
+- *&lt;target&gt;*: the path of the target image.
+- *&lt;source&gt;*: the path of the source image. 
+- *&lt;destination-directory&gt;*: the path of the directory where the result image and the deformation field are stored.
 
 The input images must be PNG, square and equal in size.
 
