@@ -8,7 +8,7 @@ setup(
     install_requires=[
         'tensorflow==1.5.0',
         'numpy==1.14.5',
-        'opencv-python==3.4.1.15'
+        'opencv-python==3.4.7.28'
         ],
     entry_points={
         'console_scripts': [
