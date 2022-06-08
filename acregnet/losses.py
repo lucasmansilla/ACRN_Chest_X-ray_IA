@@ -1,32 +1,39 @@
-import tensorflow as tf
+import torch
 
 
-def ncc(x, y):
-    """Normalized cross correlation."""
-    x_mean = tf.reduce_mean(x, [1, 2, 3], keepdims=True)
-    y_mean = tf.reduce_mean(y, [1, 2, 3], keepdims=True)
+class NormalizedCrossCorrelation:
 
-    x2_mean = tf.reduce_mean(x**2, [1, 2, 3], keepdims=True)
-    y2_mean = tf.reduce_mean(y**2, [1, 2, 3], keepdims=True)
+    def __init__(self, epsilon=1e-5):
+        self.epsilon = epsilon
 
-    x_std = tf.sqrt(x2_mean - x_mean**2)
-    y_std = tf.sqrt(y2_mean - y_mean**2)
+    def __call__(self, y_pred, y_true):
+        t0 = torch.mean(y_true, [1, 2, 3], keepdim=True)
+        p0 = torch.mean(y_pred, [1, 2, 3], keepdim=True)
 
-    return tf.reduce_mean((x - x_mean) * (y - y_mean) / (x_std * y_std))
+        t2 = torch.mean(y_true**2, [1, 2, 3], keepdim=True)
+        p2 = torch.mean(y_pred**2, [1, 2, 3], keepdim=True)
 
+        t_std = torch.sqrt(t2 - t0**2)
+        p_std = torch.sqrt(p2 - p0**2)
 
-def ce(labels, logits):
-    """Cross entropy (with softmax)."""
-    return tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits_v2(
-            labels=labels, logits=logits))
+        num = (y_true - t0) * (y_pred - p0)
+        den = (t_std * p_std) + self.epsilon
 
-
-def tv(y):
-    """Total variation."""
-    return tf.reduce_mean(tf.image.total_variation(y))
+        return -torch.mean(num / den)
 
 
-def l2(x, y):
-    """Squared L2 (Euclidean) distance."""
-    return tf.reduce_mean(tf.reduce_sum((x - y) ** 2, axis=-1))
+class TotalVariation:
+
+    def __call__(self, flow):
+        dy = torch.abs(flow[:, :, 1:, :] - flow[:, :, :-1, :])
+        dx = torch.abs(flow[:, :, :, 1:] - flow[:, :, :, :-1])
+
+        d = torch.mean(dx) + torch.mean(dy)
+
+        return d / 2.0
+
+
+class L2Squared:
+
+    def __call__(self, y_pred, y_true):
+        return torch.mean(((y_true - y_pred)**2).sum(dim=1))
