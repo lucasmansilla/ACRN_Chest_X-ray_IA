@@ -13,7 +13,7 @@ ipykernel==6.13.1
 ipython==8.4.0
 isort==5.10.1
 jedi==0.18.1
-joblib==1.1.0
+joblib==1.2.0
 jupyter-client==7.3.2
 jupyter-core==4.10.0
 lazy-object-proxy==1.7.1
