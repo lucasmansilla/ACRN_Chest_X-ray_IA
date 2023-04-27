@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 
 from .networks import AutoEncoder, RegNet
 from .modules import SpatialTransformer
@@ -13,7 +14,7 @@ class AENet:
         self.network = AutoEncoder(input_size, num_labels).to(args.device)
 
         if mode == 'train':
-            self.loss_fn = torch.nn.CrossEntropyLoss()
+            self.loss_fn = nn.CrossEntropyLoss()
 
             self.optimizer = torch.optim.Adam(
                 self.network.parameters(),
@@ -69,7 +70,7 @@ class ACRegNet:
 
             self.image_loss_fn = NormalizedCrossCorrelation()
             self.flow_loss_fn = TotalVariation()
-            self.label_loss_fn = torch.nn.CrossEntropyLoss()
+            self.label_loss_fn = nn.CrossEntropyLoss()
             self.shape_loss_fn = L2Squared()
 
             self.flow_weight = args.flow_weight

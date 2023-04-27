@@ -1,7 +1,7 @@
-import torch
+from torch.utils.data import DataLoader
 
 
-class InfiniteDataLoader(torch.utils.data.DataLoader):
+class InfiniteDataLoader(DataLoader):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

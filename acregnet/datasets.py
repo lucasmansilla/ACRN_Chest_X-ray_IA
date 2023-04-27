@@ -1,12 +1,11 @@
-from statistics import mode
-import torch
+from torch.utils.data import Dataset
 
 from .utils.io import read_txt, read_image
 from .utils.tensor import to_tensor, to_one_hot, swap_labels, relabel
 from .utils.misc import get_pairs, get_image_info
 
 
-class ImagePairsDataset(torch.utils.data.Dataset):
+class ImagePairsDataset(Dataset):
 
     def __init__(self, images_file_path, labels_file_path, mode='train'):
         assert mode in ['train', 'test']
@@ -55,7 +54,7 @@ class ImagePairsDataset(torch.utils.data.Dataset):
         return (mov_image, fix_image), (mov_label, fix_label)
 
 
-class LabelsDataset(torch.utils.data.Dataset):
+class LabelsDataset(Dataset):
 
     def __init__(self, labels_file_path, mode='train'):
         assert mode in ['train', 'test']

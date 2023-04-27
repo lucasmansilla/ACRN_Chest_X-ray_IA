@@ -1,8 +1,9 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Conv(torch.nn.Module):
+class Conv(nn.Module):
 
     def __init__(self,
                  in_channels,
@@ -13,9 +14,9 @@ class Conv(torch.nn.Module):
                  use_batchnorm=True):
         super().__init__()
 
-        self.block = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=not use_batchnorm),
-            torch.nn.BatchNorm2d(out_channels) if use_batchnorm else torch.nn.Identity()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding),
+            nn.BatchNorm2d(out_channels) if use_batchnorm else nn.Identity()
         )
 
     def forward(self, x):
@@ -23,7 +24,7 @@ class Conv(torch.nn.Module):
         return x
 
 
-class UpConv(torch.nn.Module):
+class UpConv(nn.Module):
 
     def __init__(self,
                  in_channels,
@@ -34,8 +35,8 @@ class UpConv(torch.nn.Module):
                  use_batchnorm=True):
         super().__init__()
 
-        self.block = torch.nn.Sequential(
-            torch.nn.Upsample(scale_factor=2, mode='nearest'),
+        self.block = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode='nearest'),
             Conv(in_channels, out_channels, kernel_size, stride, padding, use_batchnorm)
         )
 
@@ -44,7 +45,7 @@ class UpConv(torch.nn.Module):
         return x
 
 
-class ConvELUConv(torch.nn.Module):
+class ConvELUConv(nn.Module):
 
     def __init__(self,
                  in_channels,
@@ -55,9 +56,9 @@ class ConvELUConv(torch.nn.Module):
                  use_batchnorm=False):
         super().__init__()
 
-        self.block = torch.nn.Sequential(
+        self.block = nn.Sequential(
             Conv(in_channels, out_channels, kernel_size, stride, padding, use_batchnorm),
-            torch.nn.ELU(),
+            nn.ELU(),
             Conv(out_channels, out_channels, kernel_size, stride, padding, use_batchnorm)
         )
 
@@ -66,7 +67,7 @@ class ConvELUConv(torch.nn.Module):
         return x
 
 
-class UpConvELUConv(torch.nn.Module):
+class UpConvELUConv(nn.Module):
 
     def __init__(self,
                  in_channels,
@@ -89,7 +90,7 @@ class UpConvELUConv(torch.nn.Module):
         return x
 
 
-class SpatialTransformer(torch.nn.Module):
+class SpatialTransformer(nn.Module):
     """ https://github.com/voxelmorph/voxelmorph """
 
     def __init__(self, size, mode='bilinear'):
