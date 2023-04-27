@@ -1,5 +1,5 @@
 # Learning Deformable Registration of Medical Images with Anatomical Constraints
-This repository contains an extended version of the source code corresponding to the paper "Learning deformable registration of medical images with anatomical constraints" (Neural Networks, 2020). You can check out our paper from here: https://arxiv.org/abs/2001.07183.
+This repository contains an extended version of the source code corresponding to the paper "Learning deformable registration of medical images with anatomical constraints" (Neural Networks, 2020). You can check out our paper here: https://arxiv.org/abs/2001.07183.
 
 ## Instructions
 This project uses Python 3.8.10 and PyTorch 1.10.1.
@@ -12,6 +12,7 @@ This project uses Python 3.8.10 and PyTorch 1.10.1.
 ### Simulations:
 - AENet: `./01_run_aenet.sh`
 - AC-RegNet: `./02_run_acregnet.sh`
+
 In both scenarios, by editing the variable named `DATASET` you can choose the input dataset: JSRT, Montgomery or Shenzhen.
 
 ## AC-RegNet CLI Application
