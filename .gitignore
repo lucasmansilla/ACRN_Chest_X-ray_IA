@@ -1,6 +1,21 @@
 __pycache__
 .pytest_cache
 *.egg-info
+<<<<<<< HEAD
+=======
+data/JSRT/images/LR_64/images/*
+data/JSRT/images/LR_64/labels/*
+data/JSRT/images/LR_256/images/*
+data/JSRT/images/LR_256/labels/*
+data/Montgomery/images/LR_64/images/*
+data/Montgomery/images/LR_64/labels/*
+data/Montgomery/images/LR_256/images/*
+data/Montgomery/images/LR_256/labels/*
+data/Shenzhen/images/LR_64/images/*
+data/Shenzhen/images/LR_64/labels/*
+data/Shenzhen/images/LR_256/images/*
+data/Shenzhen/images/LR_256/labels/*
+>>>>>>> 49f7682f1e3ebded120fd47fa26ea3ca65a4f9f7
 env
 results
 experiments
