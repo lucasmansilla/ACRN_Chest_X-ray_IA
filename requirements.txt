@@ -10,7 +10,7 @@ entrypoints==0.4
 executing==0.8.3
 iniconfig==1.1.1
 ipykernel==6.13.1
-ipython==8.4.0
+ipython==8.10.0
 isort==5.10.1
 jedi==0.18.1
 joblib==1.1.0
